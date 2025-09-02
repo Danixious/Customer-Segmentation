@@ -1,3 +1,7 @@
+
+# IN PROGRESS ------- 🚧🚧🚧🚧🚧🚧🚧
+
+
 # 📊 Problem Definition
 
 ## Businesses want to group customers by their purchasing behavior.

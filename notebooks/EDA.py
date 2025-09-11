@@ -1,41 +1,36 @@
+from .utils import get_connection, TABLE_NAME
 import pandas as pd
-import sqlite3
 
-conn = sqlite3.connect("D:/Customer Segmentation/data/Retail_data.db")
+def run_query(query):
+    with get_connection() as conn:
+        return pd.read_sql_query(query, conn)
 
-#Top 10 Country
-query = """
-SELECT COUNTRY,
-COUNT (*) AS total_orders
-FROM ONLINERETAIL
-GROUP BY Country
-ORDER BY total_orders DESC;
-"""
-df_country_orders = pd.read_sql_query(query, conn)
-print("DataFrame 1 (Orders by Country):")
-print(df_country_orders.head())
+def get_country_orders(limit=None):
+    query = f"""
+    SELECT Country, COUNT(*) AS total_orders
+    FROM {TABLE_NAME}
+    GROUP BY Country
+    ORDER BY total_orders DESC
+    {f"LIMIT {limit}" if limit else ""};
+    """
+    return run_query(query)
 
-#Top 10 Products
-query2 = """
-SELECT Description, SUM(Quantity) AS total_quantity
-FROM OnlineRetail
-GROUP BY Description
-ORDER BY total_quantity DESC
-LIMIT 10;
-"""
-df_popular_products = pd.read_sql_query(query2, conn)
-print("\nDataFrame 2 (Top 10 Products):")
-print(df_popular_products.head())
+def get_top_products(limit=10):
+    query = f"""
+    SELECT Description, SUM(Quantity) AS total_quantity
+    FROM {TABLE_NAME}
+    GROUP BY Description
+    ORDER BY total_quantity DESC
+    LIMIT {limit};
+    """
+    return run_query(query)
 
-#Customer Revenue
-query3 = """
-SELECT CustomerID, SUM(Quantity * UnitPrice) AS revenue
-FROM OnlineRetail
-GROUP BY CustomerID
-ORDER BY revenue DESC;
-"""
-df_customer_revenue = pd.read_sql_query(query3, conn)
-print("\nDataFrame 3 (Customer Revenue):")
-print(df_customer_revenue.head())
-
-conn.close
+def get_customer_revenue(limit=None):
+    query = f"""
+    SELECT CustomerID, SUM(Quantity * UnitPrice) AS revenue
+    FROM {TABLE_NAME}
+    GROUP BY CustomerID
+    ORDER BY revenue DESC
+    {f"LIMIT {limit}" if limit else ""};
+    """
+    return run_query(query)

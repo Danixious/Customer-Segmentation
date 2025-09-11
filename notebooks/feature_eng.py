@@ -1,39 +1,52 @@
 import pandas as pd
-import sqlite3
+from sklearn.preprocessing import StandardScaler
+from .utils import get_connection, TABLE_NAME, RFM_TABLE
 
-conn = sqlite3.connect("D:/Customer Segmentation/data/retail.db")
+def run_query(query):
+    with get_connection() as conn:
+        return pd.read_sql_query(query, conn)
 
-#Monetary
-monetary = pd.read_sql_query(
+def get_monetary():
+    query = f"""
+    SELECT CustomerID, SUM(Quantity * UnitPrice) AS Monetary
+    FROM {TABLE_NAME}
+    GROUP BY CustomerID;
     """
-SELECT CustomerID,
-SUM(Quantity * UnitPrice) AS Monetary
-FROM OnlineRetail
-GROUP BY CustomerID
-""",conn
-)
+    return run_query(query)
 
-#Frequency
-frequency = pd.read_sql_query(
+def get_frequency():
+    query = f"""
+    SELECT CustomerID, COUNT(DISTINCT InvoiceNo) AS Frequency
+    FROM {TABLE_NAME}
+    GROUP BY CustomerID;
     """
-SELECT CustomerID,
-    COUNT(DISTINCT InvoiceNo) AS Frequency
-FROM OnlineRetail
-GROUP BY CustomerID
-""",conn
-)
+    return run_query(query)
 
-#Recency
-recency = pd.read_sql_query(
+def get_recency():
+    query = f"""
+    SELECT CustomerID, MAX(InvoiceDate) AS LastPurchaseDate
+    FROM {TABLE_NAME}
+    GROUP BY CustomerID;
     """
-SELECT CustomerID,
-    MAX(invoiceDate) AS LastPurchaseDate
-FROM OnlineRetail
-GROUP BY CustomerID
-""",conn
-)
+    return run_query(query)
 
-rfm = recency.merge(frequency, on = "CustomerID").merge(monetary,on = "CustomerID")
-print(rfm.head())
+def build_rfm():
+    recency = get_recency()
+    frequency = get_frequency()
+    monetary = get_monetary()
 
-conn.close()
+    rfm = recency.merge(frequency, on="CustomerID").merge(monetary, on="CustomerID")
+    rfm["LastPurchaseDate"] = pd.to_datetime(rfm["LastPurchaseDate"])
+    today = rfm["LastPurchaseDate"].max() + pd.Timedelta(days=1)
+    rfm["Recency"] = (today - rfm["LastPurchaseDate"]).dt.days
+    return rfm
+
+def scale_rfm(rfm):
+    scaler = StandardScaler()
+    rfm_scaled = scaler.fit_transform(rfm[["Recency", "Frequency", "Monetary"]])
+    return rfm_scaled
+
+def save_rfm(rfm):
+    with get_connection() as conn:
+        rfm.to_sql(RFM_TABLE, conn, if_exists="replace", index=False)
+    print("✅ RFM table saved to database.")

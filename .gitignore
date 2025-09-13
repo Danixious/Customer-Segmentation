@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Raw & processed data
+data/
+*.db
+
+# Outputs (reports, exports)
+outputs/
+
+# Streamlit cache
+.streamlit/
+
+# OS junk
+.DS_Store
+Thumbs.db
